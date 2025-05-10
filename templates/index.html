@@ -55,66 +55,64 @@
             </tbody>
         </table>
         
-        <!-- Detailed field-specific results first -->
-        <div class="detailed-stats">
-            <h2>Kenttäkohtaiset tilastot</h2>
-            <p>Alla on yksityiskohtainen yhteenveto kaikkien pelaajien parhaista ajoista kenttäkohtaisesti.</p>
-            
-            <div class="stats-container">
-                {% if players %}
-                    {% for i in range(18) %}
-                        <h3>Kenttä {{ i+1 }}, {{ players[0].level_details[i].level_name }}</h3>
-                        <table class="level-stats-table">
-                            <thead>
-                                <tr>
-                                    <th>Sija</th>
-                                    <th>Pelaaja</th>
-                                    <th>Aika</th>
-                                    <th>Erotus</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% set fastest_time = None %}
-                                {% for player in players %}
-                                    {% if player.level_details[i] and not player.level_details[i].is_penalty %}
-                                        {% if fastest_time is none or player.level_details[i].time < fastest_time %}
-                                            {% set fastest_time = player.level_details[i].time %}
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-
-                                {% set level_players = [] %}
-                                {% for player in players %}
-                                    {% if player.name != 'Yhdistetty paras tulos' and not player.level_details[i].is_penalty %}
-                                        {% set _ = level_players.append((player.level_details[i].time, player)) %}
-                                    {% endif %}
-                                {% endfor %}
-                                
-                                {# Sort the players by their time for this level #}
-                                {% set sorted_players = level_players|sort(attribute='0') %}
-                                
-                                {% for time_value, player in sorted_players %}
-                                    <tr>
-                                        <td>{{ loop.index }}</td>
-                                        <td>{{ player.name }}</td>
-                                        <td>{{ player.level_details[i].time_str }}</td>
-                                        <td>
-                                            {% if loop.index > 1 and sorted_players|length > 0 %}
-                                                <span class="penalty">+{{ format_total_time(time_value - sorted_players[0][0]) }}</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% endfor %}
-                {% else %}
-                    <p>Yksityiskohtaisia tilastoja ei ole vielä saatavilla.</p>
-                {% endif %}
-            </div>
-        </div>
+        <!-- Field-specific statistics -->
+        <h2>Kenttäkohtaiset tilastot</h2>
+        <p>Alla on yksityiskohtainen yhteenveto kaikkien pelaajien parhaista ajoista kenttäkohtaisesti.</p>
         
-        <!-- Total time calculation details after field-specific results -->
+        {% if players %}
+            {% for i in range(18) %}
+                <div class="compact-player-details">
+                    <h3>Kenttä {{ i+1 }}, {{ players[0].level_details[i].level_name }}</h3>
+                    <table class="compact-level-details">
+                        <thead>
+                            <tr>
+                                <th>Sija</th>
+                                <th>Pelaaja</th>
+                                <th>Aika</th>
+                                <th>Erotus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set fastest_time = None %}
+                            {% for player in players %}
+                                {% if player.level_details[i] and not player.level_details[i].is_penalty %}
+                                    {% if fastest_time is none or player.level_details[i].time < fastest_time %}
+                                        {% set fastest_time = player.level_details[i].time %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+
+                            {% set level_players = [] %}
+                            {% for player in players %}
+                                {% if player.name != 'Yhdistetty paras tulos' and not player.level_details[i].is_penalty %}
+                                    {% set _ = level_players.append((player.level_details[i].time, player)) %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {# Sort the players by their time for this level #}
+                            {% set sorted_players = level_players|sort(attribute='0') %}
+                            
+                            {% for time_value, player in sorted_players %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ player.name }}</td>
+                                    <td>{{ player.level_details[i].time_str }}</td>
+                                    <td>
+                                        {% if loop.index > 1 and sorted_players|length > 0 %}
+                                            <span class="penalty">+{{ format_total_time(time_value - sorted_players[0][0]) }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Yksityiskohtaisia tilastoja ei ole vielä saatavilla.</p>
+        {% endif %}
+        
+        <!-- Player-specific statistics -->
         <h2>Pelaajakohtaiset tilastot</h2>
         <style>
             .compact-player-details {
