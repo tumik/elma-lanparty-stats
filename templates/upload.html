@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="instructions">
+    <h3>Ohjeet</h3>
+    <p>Lataa Elasto Mania STATE.DAT -tiedostosi lisätäksesi tuloksesi yhteiseen tulostaulukkoon.</p>
+    <ul>
+        <li>Tiedoston nimen täytyy olla tarkasti <strong>STATE.DAT</strong></li>
+        <li>Pelaajanimesi otetaan STATE.DAT-tiedoston Pelaaja A -nimestä</li>
+        <li>Latauksen jälkeen sinut ohjataan yhdistettyyn tilastosivuun</li>
+    </ul>
+</div>
+
+<h2>Lähetä STATE.DAT</h2>
+<form method="post" enctype="multipart/form-data">
+    <div>
+        <input type="file" name="file" accept=".dat">
+    </div>
+    <br>
+    <div>
+        <input type="submit" value="Lähetä">
+    </div>
+</form>
+{% endblock %}

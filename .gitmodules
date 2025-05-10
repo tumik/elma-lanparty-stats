@@ -1,0 +1,3 @@
+[submodule "elma-python"]
+	path = elma-python
+	url = https://github.com/elmadev/elma-python.git

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Yhdistetyt tilastot</h2>
+
+<div class="time-format-info">
+
+</div>
+
+<div class="instructions">
+    <h3>Pelaajat</h3>
+    <p>Tässä ovat pelaajat kokonaisajan perusteella.</p>
+    <p>Ajat näytetään muodossa <strong>minuutit:sekunnit:sadasosat</strong>.
+        Kentistä joita pelaaja ei ole pelannut, lisätään sakko joka on kyseisen kentän hitain pelattu aika. 
+        <span class="penalty">Sakotetut ajat on merkitty punaisella.</span></p>
+</div>
+
+{% if players %}
+<table>
+    <thead>
+        <tr>
+            <th>Sija</th>
+            <th>Pelaaja</th>
+            <th>Kokonaisaika</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for player in players %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ player.name }}</td>
+            <td{% if player.has_penalty %} class="penalty"{% endif %}>{{ format_total_time(player.total_time) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Ei pelaajatietoja saatavilla vielä</p>
+{% endif %}
+
+<div class="detailed-stats">
+    <h2>Täydelliset tilastot</h2>
+    <p>Alla on yksityiskohtainen yhteenveto kaikkien pelaajien ajoista kenttäkohtaisesti.</p>
+    
+    <div class="stats-container">
+        {% if stats_text %}
+            <div class="stats-content">
+                {{ stats_text|replace('\n', '<br>')|replace(' ', '&nbsp;')|safe }}
+            </div>
+        {% else %}
+            <p>Yksityiskohtaisia tilastoja ei ole vielä saatavilla.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

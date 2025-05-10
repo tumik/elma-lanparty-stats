@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-container">
+    <div class="upload-section">
+        <h2>Lähetä omat tuloksesi</h2>
+        <div class="instructions">
+            <h3>Ohjeet</h3>
+            <p>Lataa Elasto Mania -asennuskansiostasi STATE.DAT -tiedostosi lisätäksesi tuloksesi yhteiseen tulostaulukkoon.</p>
+            <ul>
+                <li>Tiedoston nimen täytyy olla tarkasti <strong>STATE.DAT</strong></li>
+                <li>Lähetä tiedosto aina uudelleen kun olet pelannut uuden high scoren mihin tahansa kenttään.</li>
+            </ul>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            <div>
+                <input type="file" name="file" accept=".dat">
+            </div>
+            <br>
+            <div>
+                <input type="submit" value="Lähetä">
+            </div>
+        </form>
+    </div>
+
+    <div class="stats-section">
+        <h2>Yhdistetyt tilastot</h2>
+        
+        <div class="instructions">
+            <h3>Pelaajat</h3>
+            <p>Tässä ovat pelaajat kokonaisajan perusteella.</p>
+            <p>Ajat näytetään muodossa <strong>minuutit:sekunnit:sadasosat</strong>.
+                Kentistä joita pelaaja ei ole pelannut, lisätään sakko joka on kyseisen kentän hitain pelattu aika. 
+                <span class="penalty">Sakotetut ajat on merkitty punaisella.</span></p>
+        </div>
+
+        {% if players %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Sija</th>
+                    <th>Pelaaja</th>
+                    <th>Kokonaisaika</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in players %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ player.name }}</td>
+                    <td{% if player.has_penalty %} class="penalty"{% endif %}>{{ format_total_time(player.total_time) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Pelaajien yksityiskohtaiset tiedot -->
+        <h2>Kokonaisaikojen laskentatiedot</h2>
+        {% for player in players %}
+        <div class="player-details">
+            <h3>{{ player.name }} - Kokonaisaika: {% if player.has_penalty %}<span class="penalty">{% endif %}{{ format_total_time(player.total_time) }}{% if player.has_penalty %}</span>{% endif %}</h3>
+            
+            {% if player.level_details %}
+            <table class="level-details">
+                <thead>
+                    <tr>
+                        <th>Kenttä</th>
+                        <th>Aika</th>
+                        <th>Tyyppi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for level in player.level_details %}
+                    <tr>
+                        <td>{{ level.level_number }}. {{ level.level_name }}</td>
+                        <td{% if level.is_penalty %} class="penalty"{% endif %}>
+                            {{ level.time_str }}
+                        </td>
+                        <td>
+                            {% if level.is_penalty %}
+                            <span class="time-type">Sakko ({{ level.penalty_str }})</span>
+                            {% elif level.type == "single" %}
+                            <span class="time-type">Yksinpeli</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td><strong>Yhteensä:</strong></td>
+                        <td colspan="2"{% if player.has_penalty %} class="penalty"{% endif %}>
+                            <strong>{{ format_total_time(player.total_time) }}</strong>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p>Ei pelaajatietoja saatavilla vielä</p>
+        {% endif %}
+
+        <div class="detailed-stats">
+            <h2>Täydelliset tilastot</h2>
+            <p>Alla on yksityiskohtainen yhteenveto kaikkien pelaajien ajoista kenttäkohtaisesti.</p>
+            
+            <div class="stats-container">
+                {% if stats_text %}
+                    <div class="stats-content">
+                        {{ stats_text|replace('\n', '<br>')|replace(' ', '&nbsp;')|safe }}
+                    </div>
+                {% else %}
+                    <p>Yksityiskohtaisia tilastoja ei ole vielä saatavilla.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
