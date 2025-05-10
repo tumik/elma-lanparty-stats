@@ -32,8 +32,9 @@ A web application that combines Elasto Mania player statistics from multiple STA
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/elma-stats-combine.git
-cd elma-stats-combine
+git clone https://github.com/tumik/elma-lanparty-stats.git
+cd elma-lanparty-stats
+git submodule update --init
 ```
 
 ### 2. Create a Virtual Environment
