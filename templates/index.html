@@ -57,7 +57,7 @@
         
         <!-- Detailed field-specific results first -->
         <div class="detailed-stats">
-            <h2>Täydelliset tilastot</h2>
+            <h2>Kenttäkohtaiset tilastot</h2>
             <p>Alla on yksityiskohtainen yhteenveto kaikkien pelaajien parhaista ajoista kenttäkohtaisesti.</p>
             
             <div class="stats-container">
@@ -115,7 +115,7 @@
         </div>
         
         <!-- Total time calculation details after field-specific results -->
-        <h2>Kokonaisaikojen laskentatiedot</h2>
+        <h2>Pelaajakohtaiset tilastot</h2>
         <style>
             .compact-player-details {
                 margin-bottom: 15px;
@@ -144,6 +144,8 @@
                     <tr>
                         <th>Kenttä</th>
                         <th>Aika</th>
+                        <th>Sijoitus</th>
+                        <th>Erotus</th>
                         <th>Tyyppi</th>
                     </tr>
                 </thead>
@@ -155,8 +157,54 @@
                             {{ level.time_str }}
                         </td>
                         <td>
+                            {% if not level.is_penalty %}
+                                {% set level_index = level.level_number - 1 %}
+                                
+                                {% set level_times = [] %}
+                                {% for other_player in players %}
+                                    {% if other_player.name != 'Yhdistetty paras tulos' and not other_player.level_details[level_index].is_penalty %}
+                                        {% set _ = level_times.append(other_player.level_details[level_index].time) %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% set sorted_times = level_times|sort %}
+                                
+                                {% set player_time = level.time %}
+                                {% set rank = sorted_times.index(player_time) + 1 if player_time in sorted_times else '-' %}
+                                
+                                {{ rank }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not level.is_penalty %}
+                                {% set level_index = level.level_number - 1 %}
+                                {% set all_times = [] %}
+                                
+                                {% for other_player in players %}
+                                    {% if other_player.name != 'Yhdistetty paras tulos' and not other_player.level_details[level_index].is_penalty %}
+                                        {% set _ = all_times.append(other_player.level_details[level_index].time) %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if all_times %}
+                                    {% set fastest_time = all_times|sort|first %}
+                                    {% if fastest_time < level.time %}
+                                        <span class="penalty">+{{ format_total_time(level.time - fastest_time) }}</span>
+                                    {% else %}
+                                        <span>-</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span>-</span>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
                             {% if level.is_penalty %}
-                            <span class="time-type">Sakko ({{ level.penalty_str }})</span>
+                            <span class="penalty">Ei tulosta<br>Hitain aika: {{ level.penalty_str }})</span>
                             {% elif level.type == "single" %}
                             <span class="time-type">Yksinpeli</span>
                             {% endif %}
@@ -167,7 +215,7 @@
                 <tfoot>
                     <tr>
                         <td><strong>Yhteensä:</strong></td>
-                        <td colspan="2"{% if player.has_penalty %} class="penalty"{% endif %}>
+                        <td colspan="4"{% if player.has_penalty %} class="penalty"{% endif %}>
                             <strong>{{ format_total_time(player.total_time) }}</strong>
                         </td>
                     </tr>
