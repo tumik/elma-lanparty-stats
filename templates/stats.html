@@ -12,7 +12,7 @@
     <p>Tässä ovat pelaajat kokonaisajan perusteella.</p>
     <p>Ajat näytetään muodossa <strong>minuutit:sekunnit:sadasosat</strong>.
         Kentistä joita pelaaja ei ole pelannut, lisätään sakko joka on kyseisen kentän hitain pelattu aika. 
-        <span class="penalty">Sakotetut ajat on merkitty punaisella.</span></p>
+        <span class="penalty">Sakotetut ajat on merkitty punaisella.</span> Eli jos pelaaja ei ole pelannut kaikkia kenttiä, aika näkyy <span class="penalty">punaisena</span>.</p>
 </div>
 
 {% if players %}
@@ -27,7 +27,7 @@
     <tbody>
         {% for player in players %}
         <tr>
-            <td>{{ loop.index }}</td>
+            <td>{% if player.name != 'Yhdistetty paras tulos' %}{{ loop.index - 1 }}{% endif %}</td>
             <td>{{ player.name }}</td>
             <td{% if player.has_penalty %} class="penalty"{% endif %}>{{ format_total_time(player.total_time) }}</td>
         </tr>
@@ -39,8 +39,8 @@
 {% endif %}
 
 <div class="detailed-stats">
-    <h2>Täydelliset tilastot</h2>
-    <p>Alla on yksityiskohtainen yhteenveto kaikkien pelaajien ajoista kenttäkohtaisesti.</p>
+    <h2>Kenttäkohtaiset tilastot</h2>
+    <p>Alla on yksityiskohtainen yhteenveto kaikkien pelaajien parhaista ajoista kenttäkohtaisesti.</p>
     
     <div class="stats-container">
         {% if stats_text %}

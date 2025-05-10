@@ -89,14 +89,13 @@ def create_finnish_stats_txt(state):
     return stats_text
 
 # Function to get detailed level-by-level information for a player
-def get_player_level_details(state, player_name, combined=False):
+def get_player_level_details(state, player_name):
     """
     Get detailed information about the player's times for each level.
     
     Args:
         state: State object
         player_name: name of the player or None for combined best result
-        combined: parameter kept for backward compatibility but no longer used
         
     Returns:
         List of dictionaries with level details including times, penalties, etc.
@@ -165,18 +164,6 @@ def get_player_level_details(state, player_name, combined=False):
     
     return level_details, total_time
 
-# Function to mark penalty times in red
-def mark_penalty_times(stats_text, penalty):
-    # Find all time entries and mark penalties in red
-    lines = stats_text.split('\n')
-    for i, line in enumerate(lines):
-        # Look for lines that have a (P) marking at the end, which indicates penalty times
-        if "(P)" in line:
-            # This is a penalty time, mark it red
-            lines[i] = f'<span class="penalty">{line}</span>'
-            
-    return '\n'.join(lines)
-
 # Finnish level names lookup
 def get_finnish_level_name(level_index):
     # Mapping of English level names to Finnish
@@ -202,23 +189,24 @@ def get_finnish_level_name(level_index):
     return f"Kenttä {level_index+1}"
 
 # Modified total_time function that only considers levels 1-18
-def custom_total_time(state, player=None, combined=False):
+def custom_total_time(state, player=None):
     """
     Calculate total time for levels 1-18 only.
     
     Args:
         state: State object
         player: name of the player, or None for anonymous total time
-        combined: parameter kept for backward compatibility but no longer used
         
     Returns:
-        Tuple of (total time in hundredths of a second, boolean indicating if penalty was applied)
+        Tuple of (total time in hundredths of a second, boolean indicating if penalty was applied, 
+        boolean indicating if all times are penalties)
     """
     tt = 0
     has_penalty = False
+    all_penalties = True  # Track if all times are penalties
     
     # Only consider levels 1-18
-    for i in range(18):  # Only levels 1-18
+    for i in range(18):
         # Get the slowest time for this level from the combined statistics (to use as penalty)
         slowest_time = None
         
@@ -250,9 +238,12 @@ def custom_total_time(state, player=None, combined=False):
         if pr is None:
             pr = penalty
             has_penalty = True
+        else:
+            # If we found at least one valid time, not all are penalties
+            all_penalties = False
 
         tt += pr
-    return (tt, has_penalty)
+    return (tt, has_penalty, all_penalties)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -265,15 +256,15 @@ def index():
         
         file = request.files['file']
         
-        # If user does not select a file, browser might submit an empty file
+        # Check if user does not select a file, browser might submit an empty file
         if file.filename == '':
             flash('Ei valittua tiedostoa')
             return redirect(request.url)
             
-        # Check if the file name is exactly STATE.DAT (case-insensitive)
+        # Check if the file name is STATE.DAT (case-insensitive)
         if file.filename.upper() != "STATE.DAT":
-            flash('Tiedoston nimen täytyy olla tasan STATE.DAT')
-            return redirect(request.url)
+            flash(f'Tiedoston nimen täytyy olla STATE.DAT (kirjainkoolla ei ole väliä), mutta annoit tiedoston "{file.filename.upper()}"')
+            #return redirect(request.url)
             
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
@@ -303,25 +294,43 @@ def index():
             except Exception as e:
                 flash(f'Virhe tiedoston käsittelyssä: {str(e)}')
                 return redirect(request.url)
+        else:
+            flash('Virheellinen tiedosto. Varmista, että tiedosto on .dat-muotoinen ja että se on nimetty oikein.')
     
     # Load stats for both GET and POST (after redirect) requests
     combined_state = State()
     
     # PHASE 1: First process all files to build the combined state
+    combined_state = State()
+    
+    # Käytetään apurakennetta seuraamaan pelaajien parhaita aikoja
+    best_times = {}  # Rakenne: { level_index: { player_name: best_time } }
+    
+    # Alusta tietorakenne
+    for i in range(18):  # Vain tasot 1-18 
+        best_times[i] = {}
+    
+    # Ensin käy läpi kaikki tiedostot ja löydä kunkin pelaajan paras aika joka kentälle
     for filename in os.listdir(STATE_STORE_FOLDER):
         if filename.endswith('.dat'):
             file_path = os.path.join(STATE_STORE_FOLDER, filename)
             try:
                 state = State.load(file_path)
                 
-                # Add this state's times to the combined state
+                # Käy läpi jokaisen tason ajat
                 for i, top10 in enumerate(state.times):
+                    if i >= 18:  # Käsitellään vain tasot 1-18
+                        continue
+                        
+                    # Käy läpi single-player ajat
                     for time in top10.single:
-                        combined_state.times[i].single.append(time)
-                    for time in top10.multi:
-                        combined_state.times[i].multi.append(time)
-            
-                # Add players from this state to the combined state
+                        if time.kuski and time.time > 0:
+                            # Tarkista onko tämä paras aika tälle pelaajalle tällä kentällä
+                            if (time.kuski not in best_times[i] or 
+                                time.time < best_times[i][time.kuski]):
+                                best_times[i][time.kuski] = time.time
+                
+                # Kerää pelaajat yhdistettyyn tilaan
                 for player in state.players:
                     if player.name:  # Skip empty player names
                         # Check if player already exists in combined_state
@@ -339,6 +348,15 @@ def index():
             except Exception as e:
                 print(f"Virhe tiedoston {filename} käsittelyssä: {str(e)}")
     
+    # PHASE 2: Nyt rakenna combined_state käyttäen aiemmin löydettyjä parhaita aikoja
+    from elma.models import Top10Time
+    
+    # Lisää parhaat ajat combined_state-objektiin
+    for level_idx, players_times in best_times.items():
+        for player_name, best_time in players_times.items():
+            time_entry = Top10Time(best_time, player_name)
+            combined_state.times[level_idx].single.append(time_entry)
+    
     # Sort times for each level in the combined state
     for top10 in combined_state.times:
         top10.single.sort(key=lambda x: x.time if x.time > 0 else float('inf'))
@@ -355,29 +373,50 @@ def index():
     for player in combined_state.players:
         if player.name and player.name not in processed_players:
             # Use combined_state for player times
-            total_time, has_penalty = custom_total_time(combined_state, player.name, True)
+            total_time, has_penalty, all_penalties = custom_total_time(combined_state, player.name)
             
             # Get detailed level-by-level information
-            level_details, calculated_total = get_player_level_details(combined_state, player.name, True)
+            level_details, calculated_total = get_player_level_details(combined_state, player.name)
             
-            players_data.append({
-                'name': player.name,
-                'total_time': total_time,
-                'has_penalty': has_penalty,
-                'level_details': level_details
-            })
-            processed_players.add(player.name)
+            # Only include players with at least one valid time
+            if not all_penalties:
+                players_data.append({
+                    'name': player.name,
+                    'total_time': total_time,
+                    'has_penalty': has_penalty,
+                    'level_details': level_details
+                })
+                processed_players.add(player.name)
+    
+    # Etsi pelaajat myös ajoista (jotka eivät välttämättä ole players-listalla)
+    # Käy läpi kaikki ajat ja tunnista niissä esiintyvät pelaajat
+    for i in range(18):  # Vain kentät 1-18
+        for time in combined_state.times[i].single:
+            if time.kuski and time.kuski not in processed_players:
+                # Tämä pelaaja on ajoissa mutta ei players-listalla
+                total_time, has_penalty, all_penalties = custom_total_time(combined_state, time.kuski)
+                level_details, calculated_total = get_player_level_details(combined_state, time.kuski)
+                
+                # Only include players with at least one valid time
+                if not all_penalties:
+                    players_data.append({
+                        'name': time.kuski,
+                        'total_time': total_time,
+                        'has_penalty': has_penalty,
+                        'level_details': level_details
+                    })
+                    processed_players.add(time.kuski)
     
     # Sort players by total time
     players_data.sort(key=lambda x: x['total_time'])
     
     # Calculate "Yhdistetty paras tulos" (combined best result) 
-    combined_best_time, combined_has_penalty = custom_total_time(combined_state, None) if combined_state else (0, False)
+    combined_best_time, combined_has_penalty, _ = custom_total_time(combined_state, None) if combined_state else (0, False, True)
     
     # Get detailed level-by-level information for combined best result
     combined_level_details = []
     if combined_state:
-        combined_level_details, _ = get_player_level_details(combined_state, None, True)
+        combined_level_details, _ = get_player_level_details(combined_state, None)
     
     # Add "Yhdistetty paras tulos" as the first entry in the player list
     players_data.insert(0, {
@@ -399,4 +438,4 @@ if os.path.exists(logo_source) and not os.path.exists(logo_dest):
     shutil.copy2(logo_source, logo_dest)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)

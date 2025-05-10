@@ -137,6 +137,32 @@
             border-radius: 3px;
             border: 1px solid #e3e3e3;
         }
+        /* Level stats table styling */
+        .level-stats-table {
+            width: 100%;
+            margin-bottom: 25px;
+            border-collapse: collapse;
+        }
+        .level-stats-table th, .level-stats-table td {
+            padding: 6px 12px;
+            border: 1px solid #dee2e6;
+        }
+        .level-stats-table th {
+            background-color: #e9ecef;
+            text-align: left;
+        }
+        .level-stats-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .level-stats-table tr:hover {
+            background-color: #f1f1f1;
+        }
+        h3 {
+            margin-top: 25px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e3e3e3;
+        }
         /* Player details styling */
         .player-details {
             margin-top: 30px;
@@ -195,7 +221,7 @@
             <img src="{{ url_for('static', filename='retro.jpg') }}" alt="Retrolan logo" class="logo">
             <img src="{{ url_for('static', filename='elma.jpg') }}" alt="Elasto Mania logo" class="logo">
         </div>
-        <h1>Retrolan Elma-stats</h1>
+        <h1>Retrolan Elasto Mania stats</h1>
         
         {% with messages = get_flashed_messages() %}
         {% if messages %}
