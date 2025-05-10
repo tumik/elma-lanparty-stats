@@ -1,5 +1,7 @@
 # Elasto Mania Stats Combine
 
+This repository, including this README file, is almost completely AI-generated. Sorry for the bad code. Didn't have time at the lan party to design this properly.
+
 A web application that combines Elasto Mania player statistics from multiple STATE.DAT files. This tool allows players to upload their personal STATE.DAT files and combines everyone's best times to create a comprehensive leaderboard.
 
 ![Elasto Mania](static/elma.jpg)
